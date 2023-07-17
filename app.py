@@ -4,11 +4,25 @@ from resources.hotel import Hoteis, Hotel
 
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:essaeasenha@localhost/bdtestes'
+app.config['SQLALCHEMY_TRACK_MODIFICATION'] = False
+
 api = Api(app)
+
+
+# antes da primeira request execute
+def criar_banco():
+    banco.create_all()
 
 
 api.add_resource(Hoteis, '/hoteis')
 api.add_resource(Hotel, '/hoteis/<string:hotel_id>')
 
 if __name__ == '__main__':
+    from sql_alchemy import banco
+    banco.init_app(app)
+
+    with app.app_context():
+        criar_banco()
+
     app.run(debug=True)
