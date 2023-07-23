@@ -100,7 +100,11 @@ from models.hotel import HotelModel
 
 class Hoteis(Resource):
     def get(self):
-        return {'hoteis': hoteis}
+        return {
+            'hoteis': [
+                hotel.json() for hotel in HotelModel.query.all()
+                ]
+            }
 
 
 class Hotel(Resource):
@@ -153,6 +157,11 @@ class Hotel(Resource):
         return hotel.json(), 201  # created
 
     def delete(self, hotel_id):
-        
+        hotel = HotelModel.find_hotel(hotel_id)
 
-        return {'message': 'Hotel deleted!!!'}
+        if hotel:
+            hotel.delete_hotel()
+
+            return {'message': 'Hotel deleted successfully'}
+
+        return {'message': 'Hotel not found'}
