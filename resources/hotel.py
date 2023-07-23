@@ -138,24 +138,21 @@ class Hotel(Resource):
         # Pegas os argumentos la em cima
         dados = Hotel.argumentos.parse_args()
 
-        # chama a class de inciação (args, kwargs)
-        hotel_objeto = HotelModel(hotel_id, **dados)
+        hotel_encontrado = HotelModel.find_hotel(hotel_id)
 
-        novo_hotel = hotel_objeto.json()
+        if hotel_encontrado:
+            hotel_encontrado.update_hotel(**dados)
+            hotel_encontrado.save_hotel()
 
-        hotel = Hotel.find_hotel(hotel_id)
+            return hotel_encontrado.json(), 200
 
-        if hotel:
-            hotel.update(novo_hotel)
+        # caso não tenha, chama a class de inciação (args, kwargs)
+        hotel = HotelModel(hotel_id, **dados)
+        hotel.save_hotel()
 
-            return novo_hotel, 200
-
-        hoteis.append(novo_hotel)
-
-        return novo_hotel, 201  # created
+        return hotel.json(), 201  # created
 
     def delete(self, hotel_id):
-        global hoteis
-        hoteis = [hotel for hotel in hoteis if hotel['hotel_id'] != hotel_id]
+        
 
         return {'message': 'Hotel deleted!!!'}
