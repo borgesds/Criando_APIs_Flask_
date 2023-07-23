@@ -109,8 +109,14 @@ class Hoteis(Resource):
 
 class Hotel(Resource):
     argumentos = reqparse.RequestParser()
-    argumentos.add_argument('nome')
-    argumentos.add_argument('estrelas')
+    argumentos.add_argument(
+        'nome', type=str, required=True,
+        help="The field 'name' not blank"
+    )
+    argumentos.add_argument(
+        'estrelas', type=float, required=True,
+        help="The field 'estrelas' not blank"
+    )
     argumentos.add_argument('diaria')
     argumentos.add_argument('cidade')
 
@@ -133,8 +139,13 @@ class Hotel(Resource):
         # chama a class de inciação (args, kwargs)
         hotel = HotelModel(hotel_id, **dados)
 
-        # buscando a função la em models.hotel
-        hotel.save_hotel()
+        try:
+            # buscando a função la em models.hotel
+            hotel.save_hotel()
+        except Exception:
+            return {
+                'message': 'An internal error ocurred trying to save hotel'
+            }, 500  # Internal Server Error
 
         return hotel.json(), 201
 
@@ -152,7 +163,14 @@ class Hotel(Resource):
 
         # caso não tenha, chama a class de inciação (args, kwargs)
         hotel = HotelModel(hotel_id, **dados)
-        hotel.save_hotel()
+
+        try:
+            # buscando a função la em models.hotel
+            hotel.save_hotel()
+        except Exception:
+            return {
+                'message': 'An internal error ocurred trying to save hotel'
+            }, 500  # Internal Server Error
 
         return hotel.json(), 201  # created
 
@@ -160,7 +178,12 @@ class Hotel(Resource):
         hotel = HotelModel.find_hotel(hotel_id)
 
         if hotel:
-            hotel.delete_hotel()
+            try:
+                hotel.delete_hotel()
+            except Exception:
+                return {
+                    'message': 'An error occurred trying to delete hotel'
+                }, 500  # Internal Server Error
 
             return {'message': 'Hotel deleted successfully'}
 
