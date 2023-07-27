@@ -1,5 +1,21 @@
 from flask_restful import Resource, reqparse
 from models.usuario import UserModel
+from flask_jwt_extended import create_access_token
+import hmac
+
+atributos = reqparse.RequestParser()
+atributos.add_argument(
+    'login',
+    type=str,
+    required=True,
+    help="The field 'login' not blank"
+)
+atributos.add_argument(
+    'senha',
+    type=str,
+    required=True,
+    help="The field 'senha' not blank"
+)
 
 
 class User(Resource):
@@ -31,19 +47,6 @@ class User(Resource):
 class UserRegistration(Resource):
     # /cadastro
     def post(self):
-        atributos = reqparse.RequestParser()
-        atributos.add_argument(
-            'login',
-            type=str,
-            required=True,
-            help="The field 'login' not blank"
-        )
-        atributos.add_argument(
-            'senha',
-            type=str,
-            required=True,
-            help="The field 'senha' not blank"
-        )
         dados = atributos.parse_args()
 
         if UserModel.find_by_login(dados['login']):
@@ -54,3 +57,18 @@ class UserRegistration(Resource):
         user = UserModel(**dados)
         user.save_user()
         return {'message': 'User crated successfully!'}, 201  # Created
+
+
+class UserLogin(Resource):
+    # /login
+    @classmethod
+    def post(cls):
+        dados = atributos.parse_args()
+
+        user = UserModel.find_by_login(dados['login'])
+
+        if user and hmac.compare_digest(user.senha, dados['senha']):
+            token_de_acesso = create_access_token(identity=user.user_id)
+
+            return {'access': token_de_acesso}, 200
+        return {'message': 'The username or password is incorrect.'}, 401
