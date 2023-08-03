@@ -33,7 +33,6 @@ class Hotel(Resource):
 
         return {'message': 'Hotel not found'}, 404  # Not found
 
-    
     def post(self, hotel_id):
         # buscando a função la em models.hotel
         if HotelModel.find_hotel(hotel_id):
