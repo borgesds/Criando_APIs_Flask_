@@ -33,6 +33,7 @@ class Hotel(Resource):
 
         return {'message': 'Hotel not found'}, 404  # Not found
 
+    @jwt_required()
     def post(self, hotel_id):
         # buscando a função la em models.hotel
         if HotelModel.find_hotel(hotel_id):
@@ -54,6 +55,7 @@ class Hotel(Resource):
 
         return hotel.json(), 201
 
+    @jwt_required()
     def put(self, hotel_id):
         # Pegas os argumentos la em cima
         dados = Hotel.argumentos.parse_args()
@@ -79,6 +81,7 @@ class Hotel(Resource):
 
         return hotel.json(), 201  # created
 
+    @jwt_required()
     def delete(self, hotel_id):
         hotel = HotelModel.find_hotel(hotel_id)
 

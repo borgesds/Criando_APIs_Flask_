@@ -27,7 +27,7 @@ def criar_banco():
 
 # verificar se o token ta ou não na blacklist
 @jwt.token_in_blocklist_loader
-def verica_blacklist(token):
+def verica_blacklist(self, token):
     return token['jti'] in BLACKLIST
 
 
