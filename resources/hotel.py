@@ -44,6 +44,7 @@ path_params.add_argument('offiset', type=float)
 
 class Hoteis(Resource):
     def get(self):
+        """
         conn = criar_conexao('localhost', 'root', 'essaeasenha', 'bdtestes')
         cursor = conn.cursor()
 
@@ -75,11 +76,51 @@ class Hoteis(Resource):
 
             resultado = cursor.execute(consulta, valores)
 
-        return {
-            'hoteis': [
-                hotel.json() for hotel in HotelModel.query.all()
-                ]
-            }
+        hoteis = []
+
+        # retornar o resultado como chave valor
+        for linha in resultado:
+            hoteis.append({
+                'hotel_id': linha[0],
+                'nome': linha[1],
+                'estrelas': linha[2],
+                'diaria': linha[3],
+                'cidade': linha[4]
+            })
+
+        return {'hoteis': hoteis}
+        """
+        dados = path_params.parse_args()
+        dados_validos = {chave: valor for chave, valor in dados.items() if valor is not None}
+        parametros = normalize_path_params(**dados_validos)
+
+        consulta_base = "SELECT * FROM hoteis \
+                        WHERE (estrelas > ? and estrelas < ?) \
+                        and (diaria > ? and diaria < ?)"
+
+        valores = (
+            parametros['estrelas_min'],
+            parametros['estrelas_max'],
+            parametros['diaria_min'],
+            parametros['diaria_max']
+        )
+
+        if parametros.get('cidade'):
+            consulta = f"{consulta_base} and cidade = ? LIMIT ? OFFSET ?"
+            valores += (parametros['cidade'], parametros['limite'], parametros['offset'])
+        else:
+            consulta = f"{consulta_base} LIMIT ? OFFSET ?"
+            valores += (parametros['limite'], parametros['offset'])
+
+        conn = criar_conexao('localhost', 'root', 'essaeasenha', 'bdtestes')
+        cursor = conn.cursor()
+
+        with conn:
+            resultado = cursor.execute(consulta, valores)
+            Hotel = namedtuple('Hotel', ['hotel_id', 'nome', 'estrelas', 'diaria', 'cidade'])
+            hoteis = [Hotel(*linha) for linha in resultado]
+
+        return {'hoteis': hoteis}
 
 
 class Hotel(Resource):
