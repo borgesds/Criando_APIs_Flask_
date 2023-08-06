@@ -1,6 +1,7 @@
 from flask_restful import Resource, reqparse
 from models.hotel import HotelModel
 from flask_jwt_extended import jwt_required
+from banco_mysql import criar_conexao
 
 
 def normalize_path_params(cidade=None,
@@ -43,6 +44,8 @@ path_params.add_argument('offiset', type=float)
 
 class Hoteis(Resource):
     def get(self):
+        conn = criar_conexao('localhost', 'root', 'essaeasenha', 'bdtestes')
+        cursor = conn.cursor()
 
         dados = path_params.parse_args()
 
@@ -52,6 +55,25 @@ class Hoteis(Resource):
         }
 
         parametros = normalize_path_params(**dados_validos)
+
+        if not parametros.get('cidade'):
+            consulta = "SELECT * FROM hoteis \
+                WHERE (estrelas > ? and estrelas < ?) \
+                and (diaria > ? and diaria < ?) \
+                LIMIT ? OFFSET ?"
+
+            valores = tuple([parametros[chave] for chave in parametros])
+
+            resultado = cursor.execute(consulta, valores)
+        else:
+            consulta = "SELECT * FROM hoteis \
+                WHERE (estrelas > ? and estrelas < ?) \
+                and (diaria > ? and diaria < ?) \
+                and cidade = ? LIMIT ? OFFSET ?"
+
+            valores = tuple([parametros[chave] for chave in parametros])
+
+            resultado = cursor.execute(consulta, valores)
 
         return {
             'hoteis': [
