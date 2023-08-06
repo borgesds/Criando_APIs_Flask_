@@ -1,126 +1,71 @@
 from flask_restful import Resource, reqparse
 from models.hotel import HotelModel
 from flask_jwt_extended import jwt_required
-from banco_mysql import criar_conexao
-
-
-def normalize_path_params(cidade=None,
-                          estrelas_min=0,
-                          estrelas_max=5,
-                          diaria_min=0,
-                          diaria_max=10000,
-                          limit=50,
-                          offset=0, **dados):
-    if cidade:
-        return {
-            'estrelas_min': estrelas_min,
-            'estrelas_max': estrelas_max,
-            'diaria_min': diaria_min,
-            'diaria_max': diaria_max,
-            'cidade': cidade,
-            'limit': limit,
-            'offset': offset
-        }
-    return {
-            'estrelas_min': estrelas_min,
-            'estrelas_max': estrelas_max,
-            'diaria_min': diaria_min,
-            'diaria_max': diaria_max,
-            'limit': limit,
-            'offset': offset
-        }
-
-
-# path /hoteis?cidade==Rio de Janeiro&estrelas_min=4&diraria=300
-path_params = reqparse.RequestParser()
-path_params.add_argument('cidade', type=str)
-path_params.add_argument('estrelas_min', type=float)
-path_params.add_argument('estrelas_max', type=float)
-path_params.add_argument('diaria_min', type=float)
-path_params.add_argument('diaria_max', type=float)
-path_params.add_argument('limit', type=float)
-path_params.add_argument('offiset', type=float)
 
 
 class Hoteis(Resource):
+    """
+    Criação de um objeto `query_params` para
+    lidar com os parâmetros de consulta
+    """
+    query_params = reqparse.RequestParser()
+
+    """
+    Definição dos argumentos que podem ser passados
+    como parâmetros de consulta.
+    path /hoteis?cidade==Rio de Janeiro&estrelas_min=4&diraria=300
+    """
+    query_params.add_argument("cidade",
+                              type=str, default="", location="args")
+
+    query_params.add_argument("estrelas_min",
+                              type=float, default=0, location="args")
+
+    query_params.add_argument("estrelas_max",
+                              type=float, default=5, location="args")
+
+    query_params.add_argument("diaria_min",
+                              type=float, default=0, location="args")
+
+    query_params.add_argument("diaria_max",
+                              type=float, default=10000, location="args")
+
+    query_params.add_argument("limit",
+                              type=float, default=50, location="args")
+
+    query_params.add_argument("offset",
+                              type=float, default=0, location="args")
+
     def get(self):
-        """
-        conn = criar_conexao('localhost', 'root', 'essaeasenha', 'bdtestes')
-        cursor = conn.cursor()
+        # Parse dos parâmetros de consulta com base nas definições anteriores
+        filters = Hoteis.query_params.parse_args()
 
-        dados = path_params.parse_args()
+        # Criação de uma query inicial usando o modelo HotelModel
+        query = HotelModel.query
 
-        # receber so os dados validos
-        dados_validos = {
-            chave: dados[chave] for chave in dados if dados[chave] is not None
-        }
+        # Aplicação de filtros à query baseados nos parâmetros de consulta
+        if filters["cidade"]:
+            query = query.filter(
+                HotelModel.cidade == filters["cidade"])
+        if filters["estrelas_min"]:
+            query = query.filter(
+                HotelModel.estrelas >= filters["estrelas_min"])
+        if filters["estrelas_max"]:
+            query = query.filter(
+                HotelModel.estrelas <= filters["estrelas_max"])
+        if filters["diaria_min"]:
+            query = query.filter(
+                HotelModel.diaria >= filters["diaria_min"])
+        if filters["diaria_max"]:
+            query = query.filter(
+                HotelModel.diaria <= filters["diaria_max"])
+        if filters["limit"]:
+            query = query.limit(filters["limit"])
+        if filters["offset"]:
+            query = query.offset(filters["offset"])
 
-        parametros = normalize_path_params(**dados_validos)
-
-        if not parametros.get('cidade'):
-            consulta = "SELECT * FROM hoteis \
-                WHERE (estrelas > ? and estrelas < ?) \
-                and (diaria > ? and diaria < ?) \
-                LIMIT ? OFFSET ?"
-
-            valores = tuple([parametros[chave] for chave in parametros])
-
-            resultado = cursor.execute(consulta, valores)
-        else:
-            consulta = "SELECT * FROM hoteis \
-                WHERE (estrelas > ? and estrelas < ?) \
-                and (diaria > ? and diaria < ?) \
-                and cidade = ? LIMIT ? OFFSET ?"
-
-            valores = tuple([parametros[chave] for chave in parametros])
-
-            resultado = cursor.execute(consulta, valores)
-
-        hoteis = []
-
-        # retornar o resultado como chave valor
-        for linha in resultado:
-            hoteis.append({
-                'hotel_id': linha[0],
-                'nome': linha[1],
-                'estrelas': linha[2],
-                'diaria': linha[3],
-                'cidade': linha[4]
-            })
-
-        return {'hoteis': hoteis}
-        """
-        dados = path_params.parse_args()
-        dados_validos = {chave: valor for chave, valor in dados.items() if valor is not None}
-        parametros = normalize_path_params(**dados_validos)
-
-        consulta_base = "SELECT * FROM hoteis \
-                        WHERE (estrelas > ? and estrelas < ?) \
-                        and (diaria > ? and diaria < ?)"
-
-        valores = (
-            parametros['estrelas_min'],
-            parametros['estrelas_max'],
-            parametros['diaria_min'],
-            parametros['diaria_max']
-        )
-
-        if parametros.get('cidade'):
-            consulta = f"{consulta_base} and cidade = ? LIMIT ? OFFSET ?"
-            valores += (parametros['cidade'], parametros['limite'], parametros['offset'])
-        else:
-            consulta = f"{consulta_base} LIMIT ? OFFSET ?"
-            valores += (parametros['limite'], parametros['offset'])
-
-        conn = criar_conexao('localhost', 'root', 'essaeasenha', 'bdtestes')
-        cursor = conn.cursor()
-
-        with conn:
-            resultado = cursor.execute(consulta, valores)
-            Hotel = namedtuple('Hotel', ['hotel_id', 'nome', 'estrelas', 'diaria', 'cidade'])
-            hoteis = [Hotel(*linha) for linha in resultado]
-
-        return {'hoteis': hoteis}
+        # Execução da query e geração da lista de resultados no formato JSON
+        return {"hoteis": [hotel.json() for hotel in query]}
 
 
 class Hotel(Resource):
