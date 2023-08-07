@@ -30,6 +30,9 @@ class Hoteis(Resource):
     query_params.add_argument("diaria_max",
                               type=float, default=10000, location="args")
 
+    query_params.add_argument("site_id",
+                              type=int, default=0, location="args")
+
     query_params.add_argument("limit",
                               type=float, default=50, location="args")
 
@@ -63,6 +66,9 @@ class Hoteis(Resource):
             query = query.limit(filters["limit"])
         if filters["offset"]:
             query = query.offset(filters["offset"])
+        if filters["site_id"]:
+            query = query.filter(
+                HotelModel.cidade == filters["site_id"])
 
         # Execução da query e geração da lista de resultados no formato JSON
         return {"hoteis": [hotel.json() for hotel in query]}
@@ -80,6 +86,10 @@ class Hotel(Resource):
     )
     argumentos.add_argument('diaria')
     argumentos.add_argument('cidade')
+    argumentos.add_argument(
+        'site_id', type=int, required=True,
+        help="Every hotel needs to be linked with site"
+    )
 
     def get(self, hotel_id):
         hotel = HotelModel.find_hotel(hotel_id)

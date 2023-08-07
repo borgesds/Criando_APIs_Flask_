@@ -4,7 +4,7 @@ from models.site import SiteModel
 
 class Sites(Resource):
     def get(self):
-        return {'sites': [site.json() for site in SiteModel.objects.all()]}
+        return {'sites': [site.json() for site in SiteModel.query.all()]}
 
 
 class Site(Resource):
@@ -20,6 +20,7 @@ class Site(Resource):
             return {'message': f"The site '{url}' already exists."}, 400
 
         site = SiteModel(url)
+
         try:
             site.save_site()
         except Exception:
