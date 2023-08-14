@@ -35,7 +35,7 @@ class Site(Resource):
         site = SiteModel.find_site(url)
 
         if site:
-            Site.delete_site()
+            site.delete_site()
             return {'message': 'Site deleted.'}
 
         return {'message': 'Site not found.'}, 404
