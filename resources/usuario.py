@@ -17,6 +17,7 @@ atributos.add_argument(
     required=True,
     help="The field 'senha' not blank"
 )
+atributos.add_argument('ativado', type=bool)
 
 
 class User(Resource):
@@ -57,6 +58,7 @@ class UserRegistration(Resource):
             }
 
         user = UserModel(**dados)
+        user.ativado = False
         user.save_user()
         return {'message': 'User crated successfully!'}, 201  # Created
 
@@ -70,9 +72,11 @@ class UserLogin(Resource):
         user = UserModel.find_by_login(dados['login'])
 
         if user and hmac.compare_digest(user.senha, dados['senha']):
-            token_de_acesso = create_access_token(identity=user.user_id)
+            if user.ativado:
+                token_de_acesso = create_access_token(identity=user.user_id)
 
-            return {'access': token_de_acesso}, 200
+                return {'access': token_de_acesso}, 200
+            return {'message': 'User not confirmed.'}, 400
         return {'message': 'The username or password is incorrect.'}, 401
 
 
@@ -82,3 +86,19 @@ class UserLogout(Resource):
         jwt_id = get_jwt()['jti']  # JWT Token Identifier
         BLACKLIST.add(jwt_id)
         return {'message': 'Logged out successfully'}, 200
+
+
+class UserConfirm(Resource):
+    # raiz_do_site/confirmacao/{user_id}
+    @classmethod
+    def get(cls, user_id):
+        user = UserModel.find_user(user_id)
+
+        if not user:
+            return {'message': f'User id  {user_id} - not found.'}, 404
+
+        user.ativado = True
+        user.save_user()
+        return {
+            'message': f'User id - {user_id} - confirmed successfully'
+        }, 200
